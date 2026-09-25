@@ -1,13 +1,13 @@
-name: kasir
+name: api
 
 services:
   app:
     build:
       context: .
       dockerfile: Dockerfile
-    image: kasir-app:latest
+    image: api-app:latest
     pull_policy: never
-    container_name: kasir-app
+    container_name: api-app
     restart: unless-stopped
     working_dir: /var/www/html
     volumes:
@@ -21,53 +21,11 @@ services:
       redis:
         condition: service_healthy
     networks:
-      - kasir-net
-
-  queue:
-    build:
-      context: .
-      dockerfile: Dockerfile
-    image: kasir-app:latest
-    pull_policy: never
-    container_name: kasir-queue
-    restart: unless-stopped
-    working_dir: /var/www/html
-    volumes:
-      - ./:/var/www/html
-    command: php artisan queue:work redis --sleep=3 --tries=3
-    depends_on:
-      mariadb:
-        condition: service_healthy
-      redis:
-        condition: service_healthy
-    networks:
-      - kasir-net
-
-  reverb:
-    build:
-      context: .
-      dockerfile: Dockerfile
-    image: kasir-app:latest
-    pull_policy: never
-    container_name: kasir-reverb
-    restart: unless-stopped
-    working_dir: /var/www/html
-    volumes:
-      - ./:/var/www/html
-    command: php artisan reverb:start --host=0.0.0.0 --port=8080
-    ports:
-      - "8080:8080"
-    depends_on:
-      mariadb:
-        condition: service_healthy
-      redis:
-        condition: service_healthy
-    networks:
-      - kasir-net
+      - api-net
 
   webserver:
     image: nginx:1.27-alpine
-    container_name: kasir-webserver
+    container_name: api-webserver
     restart: unless-stopped
     ports:
       - "8000:80"
@@ -77,21 +35,21 @@ services:
     depends_on:
       - app
     networks:
-      - kasir-net
+      - api-net
 
   mariadb:
     image: mariadb:11
-    container_name: kasir-mariadb
+    container_name: api-mariadb
     restart: unless-stopped
     environment:
-      MARIADB_DATABASE: kasir
-      MARIADB_USER: kasir
-      MARIADB_PASSWORD: kasir
+      MARIADB_DATABASE: api
+      MARIADB_USER: api
+      MARIADB_PASSWORD: api
       MARIADB_ROOT_PASSWORD: root
     ports:
       - "3306:3306"
     volumes:
-      - kasir-mariadb-data:/var/lib/mysql
+      - api-mariadb-data:/var/lib/mysql
     healthcheck:
       test: ["CMD", "healthcheck.sh", "--connect", "--innodb_initialized"]
       interval: 10s
@@ -99,38 +57,16 @@ services:
       retries: 5
       start_period: 20s
     networks:
-      - kasir-net
-
-  mariadb-testing:
-    image: mariadb:11
-    container_name: kasir-mariadb-testing
-    restart: unless-stopped
-    environment:
-      MARIADB_DATABASE: kasir_testing
-      MARIADB_USER: kasir
-      MARIADB_PASSWORD: kasir
-      MARIADB_ROOT_PASSWORD: root
-    ports:
-      - "3307:3306"
-    volumes:
-      - kasir-mariadb-testing-data:/var/lib/mysql
-    healthcheck:
-      test: ["CMD", "healthcheck.sh", "--connect", "--innodb_initialized"]
-      interval: 10s
-      timeout: 5s
-      retries: 5
-      start_period: 20s
-    networks:
-      - kasir-net
+      - api-net
 
   redis:
     image: redis:7-alpine
-    container_name: kasir-redis
+    container_name: api-redis
     restart: unless-stopped
     ports:
       - "6379:6379"
     volumes:
-      - kasir-redis-data:/data
+      - api-redis-data:/data
     healthcheck:
       test: ["CMD", "redis-cli", "ping"]
       interval: 10s
@@ -138,13 +74,12 @@ services:
       retries: 5
       start_period: 10s
     networks:
-      - kasir-net
+      - api-net
 
 networks:
-  kasir-net:
+  api-net:
     driver: bridge
 
 volumes:
-  kasir-mariadb-data:
-  kasir-mariadb-testing-data:
-  kasir-redis-data:
+  api-mariadb-data:
+  api-redis-data: 
